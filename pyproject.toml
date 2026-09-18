@@ -1,0 +1,13 @@
+[project]
+name = "invoicelint"
+version = "0.1.0"
+description = "A strict-by-default linter for invoice line item CSV files"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+[project.scripts]
+invoicelint = "invoicelint.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
