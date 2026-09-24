@@ -1,5 +1,6 @@
 """Command line entry point for invoicelint."""
 import argparse
+import json
 import sys
 from pathlib import Path
 from typing import List
@@ -18,6 +19,15 @@ def lint_file(path: Path, lenient: bool) -> List[Finding]:
     return check_all(items, lenient=lenient)
 
 
+def _finding_to_dict(finding: Finding) -> dict:
+    return {
+        "line": finding.line,
+        "code": finding.code,
+        "severity": finding.severity,
+        "message": finding.message,
+    }
+
+
 def main(argv: List[str] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="invoicelint",
@@ -32,15 +42,32 @@ def main(argv: List[str] = None) -> int:
             "small rounding drift) to warnings instead of errors"
         ),
     )
+    parser.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="output format: text (default) or json, for CI integration",
+    )
     args = parser.parse_args(argv)
 
     had_error = False
+    results = []
     for path in args.files:
-        findings = lint_file(path, args.lenient)
-        for finding in sorted(findings, key=lambda f: f.line):
-            print(f"{path}:{finding}")
-            if finding.severity == "error":
-                had_error = True
+        findings = sorted(lint_file(path, args.lenient), key=lambda f: f.line)
+        if any(finding.severity == "error" for finding in findings):
+            had_error = True
+        results.append((path, findings))
+
+    if args.format == "json":
+        payload = [
+            {"file": str(path), "findings": [_finding_to_dict(f) for f in findings]}
+            for path, findings in results
+        ]
+        print(json.dumps(payload, indent=2))
+    else:
+        for path, findings in results:
+            for finding in findings:
+                print(f"{path}:{finding}")
 
     return 1 if had_error else 0
 

@@ -66,6 +66,34 @@ arithmetic check. The exit code is non-zero only if there's at least one
 error, so `--lenient` output can still fail a CI job when the numbers are
 actually wrong.
 
+## JSON output
+
+For CI pipelines that want to parse results rather than read them, pass
+`--format json`:
+
+```sh
+python -m invoicelint --format json invoices/march.csv
+```
+
+This prints a JSON array with one object per file, each holding a list of
+findings:
+
+```json
+[
+  {
+    "file": "invoices/march.csv",
+    "findings": [
+      {"line": 3, "code": "E009", "severity": "error", "message": "currency 'usd' is not a 3-letter uppercase code"},
+      {"line": 4, "code": "W001", "severity": "error", "message": "tax_rate is missing, assuming 0"}
+    ]
+  }
+]
+```
+
+The exit code rules are the same as text mode. A file whose header is
+missing required columns is reported on stderr, not in the JSON payload,
+since it never produced a list of findings to serialize.
+
 ## Exit codes
 
 - `0`: no errors (there may still be warnings)
